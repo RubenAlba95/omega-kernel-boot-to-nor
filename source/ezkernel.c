@@ -1137,7 +1137,7 @@ u32 SavefileWrite(TCHAR *filename,u32 savesize)
 u8 Check_saveMODE(u8 gamecode[])
 {
 	u32 i;
-	BYTE savemode = 0x10;
+	BYTE savemode = 0xFF;
 	dmaCopy((void*)saveMODE_table, (void*)pReadCache, sizeof(saveMODE_table));
 	for(i=0;i<3000;i++)
 	{
@@ -1221,7 +1221,7 @@ void CheckLanguage(void)
 	{
 		LoadEnglish();
 	}
-	else//ÖÐÎÄ
+	else//ï¿½ï¿½ï¿½ï¿½
 	{
 		LoadChinese();
 	}
@@ -1587,6 +1587,10 @@ int main(void) {
 	u32 page_mode;
 	u32 shift;
 	u32 short_filename=0;
+	u8 Save_num=0; //save type: auto
+	u8 old_Save_num=0;
+	u32 MENU_line=0;
+	u32 is_EMU=0;
 	
 	u8 error_num;
 
@@ -1598,7 +1602,7 @@ int main(void) {
 	Set_RTC_status(1);
 		
 	//check FW
-	u16 Built_in_ver = 9;   //Newest_FW_ver
+	u16 Built_in_ver = 8;   //Newest_FW_ver
 	u16 Current_FW_ver = Read_FPGA_ver();
 
 	if((Current_FW_ver < Built_in_ver) || (Current_FW_ver == 99))//99 is test ver
@@ -1625,6 +1629,7 @@ int main(void) {
 	VBlankIntrWait();	
 
 	f_chdir("/");
+	TCHAR *pfilename;
 	TCHAR currentpath[MAX_path_len];
 	memset(currentpath,00,MAX_path_len);
 	memset(currentpath_temp,0x00,MAX_path_len);
@@ -1642,7 +1647,55 @@ int main(void) {
 		memset(pNorFS,00,sizeof(FM_NOR_FS)*MAX_NOR);
 		Save_NOR_info(pNorFS,sizeof(FM_NOR_FS)*MAX_NOR);
 	}
+	VBlankIntrWait();
+	scanKeys();
+	const int isLPressed = (keysDownRepeat() & KEY_L) || (keysDown() & KEY_L);
+	const int isAPressed = (keysDownRepeat() & KEY_A) || (keysDown() & KEY_A);
+	if(!isLPressed)
+	{
+		if (isAPressed)
+		{
+			// L+A pressed -> load last played game from SD card if user has
+			// previously started at least one game
+			if (get_count())
+			{
+				u32 save_num = 0;
 
+				res = f_open(&gfile, p_recently_play[save_num], FA_OPEN_EXISTING);
+				if(res == FR_OK)
+				{
+					f_close(&gfile);
+
+					page_num=SD_list;
+
+					u8 *p=strrchr(p_recently_play[save_num], '/');
+					memset(currentpath, 0, MAX_path_len);
+					strncpy(currentpath, p_recently_play[save_num], p-p_recently_play[save_num]);
+					if(currentpath[0]==0)
+					{
+						currentpath[0] = '/';
+					}
+					memset(current_filename, 0, 200);
+					strncpy(current_filename, p+1, 100); // remove directory path
+					pfilename = current_filename;
+					is_EMU=Check_file_type(pfilename);
+					if (!is_EMU)
+					{
+						old_Save_num = Check_mde_file(pfilename);
+						Save_num = old_Save_num;
+					}
+					goto start_game;
+				}
+			}
+		}
+		else if(game_total_NOR)
+		{
+			// L pressed -> load last game in NOR
+			page_num = NOR_list;
+			file_select = game_total_NOR - 1;
+			goto start_game;
+		}
+	}
 refind_file:
 	
 
@@ -2209,6 +2262,8 @@ re_showfile:
 			ShowTime(page_num,page_mode);
 		}	//3
 
+ start_game:
+
 		Clear(0, 0, 240, 160, gl_color_cheat_black, 1);
 		DrawHZText12(gl_Loading,0,(240-strlen(gl_Loading)*6)/2,74, gl_color_text,1);
 
@@ -2326,7 +2381,7 @@ re_showfile:
 				case 0x3:saveMODE=0x21;break;//EEPROM512
 				case 0x4:saveMODE=0x32;break;//FLASH64
 				case 0x5:saveMODE=0x31;break;//FLASH128
-				case 0xf:saveMODE=0x10;break;	
+				case 0xf:saveMODE=0xee;break;	
 				default:saveMODE=0x00;break;					
 			}
 		}
@@ -2341,7 +2396,7 @@ re_showfile:
 			case 0x32:savefilesize=0x10000;break;//FLASH_TYPE 64k
 			case 0x33:savefilesize=0x10000;break;//FLASH512_TYPE 64k	
 			case 0x31:savefilesize=0x20000;break;//FLASH1M_TYPE 128k
-			case 0x10:savefilesize=0x10000;break;//EMU 64k	
+			case 0xee:savefilesize=0x10000;break;//EMU 64k	
 			default:	savefilesize=0x10000;break;//UNKNOW,FF  for homebrew SRAM_TYPE	//2018-4-23 some emu homebrew need 64kByte	
 		}		
 		
@@ -2350,7 +2405,7 @@ re_showfile:
 		if(res == FR_OK)//have a old save file
 		{
 			savefilesize = f_size(&gfile);		
-			f_close(&gfile);				
+			f_close(&gfile);
 		}					
 		else //make a new one
 		{	
