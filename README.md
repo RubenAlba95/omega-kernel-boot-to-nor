@@ -1,5 +1,10 @@
 #EZ-FLASH OMEGA Kernel
 
+Decided to modify the Omega Kernel to allow quick booting of games stored in NOR without having to go through the menus.
+In order to enable it, go to the options menu, press right or left to switch pages, and toggle the option on.
+Once enabled, if you want to go back to the Omega menu, hold L on boot-up.
+This also works to launch the most recently played game, regardless of if it was stored in NOr or not, just hold A on boot-up.
+
 ### How to build 
 
     1.We use devkitARM_r47, you can use the current version or newer.
