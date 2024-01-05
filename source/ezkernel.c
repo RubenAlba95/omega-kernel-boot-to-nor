@@ -68,6 +68,7 @@ u32 gl_currentpage;
 u32 gl_norOffset;
 u16 gl_select_lang;
 u16 gl_engine_sel;
+u16 gl_quickboot_sel;
 
 u16 gl_show_Thumbnail;
 u16 gl_ingame_RTC_open_status;
@@ -1227,6 +1228,25 @@ void CheckLanguage(void)
 	}
 }
 //---------------------------------------------------------------------------------
+void CheckQuickboot(void)
+{
+	//read setting
+	gl_NOR_quickboot =  Read_SET_info(14);
+	if( (gl_NOR_quickboot != 0x0) && (gl_NOR_quickboot != 0x1))
+	{
+		gl_NOR_quickboot = 0x0;
+	}
+	
+	if(gl_NOR_quickboot == 0x1)
+	{
+		//LoadEnglish();
+	}
+	else//����
+	{
+		//LoadChinese();
+	}
+}
+//---------------------------------------------------------------------------------
 void CheckSwitch(void)
 {
 	gl_reset_on = Read_SET_info(1);
@@ -1255,7 +1275,11 @@ void CheckSwitch(void)
 	{
 		gl_engine_sel = 0x1;
 	}
-	
+	gl_quickboot_sel = Read_SET_info(14);
+	if( (gl_quickboot_sel != 0x0) && (gl_quickboot_sel != 0x1))
+	{
+		gl_quickboot_sel = 0x1;
+	}
 	gl_show_Thumbnail = Read_SET_info(12);
 	if( (gl_show_Thumbnail != 0x0) && (gl_show_Thumbnail != 0x1))
 	{
@@ -1651,7 +1675,7 @@ int main(void) {
 	scanKeys();
 	const int isLPressed = (keysDownRepeat() & KEY_L) || (keysDown() & KEY_L);
 	const int isAPressed = (keysDownRepeat() & KEY_A) || (keysDown() & KEY_A);
-	if(!isLPressed)
+	if(!isLPressed & gl_quickboot_sel == 0x1)
 	{
 		if (isAPressed)
 		{

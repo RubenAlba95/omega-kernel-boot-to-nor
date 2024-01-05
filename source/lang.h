@@ -66,6 +66,10 @@ extern char* gl_ingameRTC;
 extern char* gl_ingameRTC_open;
 extern char* gl_ingameRTC_close;
 
+extern char* gl_NOR_quickboot;
+extern char* gl_NOR_quickboot_on;
+extern char* gl_NOR_quickboot_off;
+
 extern char* gl_error_0;
 extern char* gl_error_1;
 extern char* gl_error_2;
