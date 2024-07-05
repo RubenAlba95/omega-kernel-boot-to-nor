@@ -97,6 +97,10 @@ u16 gl_color_cheat_count  = RGB(00,31,00);
 u16 gl_color_cheat_black  = RGB(00,00,00);
 u16 gl_color_NORFULL      = RGB(31,00,00);
 u16 gl_color_btn_clean    = RGB(00,00,31);
+
+bool dumpFatTable = false;
+bool enabledUI = false;
+
 //******************************************************************************
 void delay(u32 R0)
 {
@@ -1553,13 +1557,16 @@ u32 Check_file_type(TCHAR *pfilename)
 	}	
 }
 //---------------------------------------------------------------------------------
-void Show_error_num(u8 error_num)
-{
+void Show_error_num(u8 error_num) {
+	
+	if (!enabledUI) {
+		enabledUI = true;
+		SetMode (MODE_3 | BG2_ENABLE);
+	}
 	char msg[50];
 
 	ClearWithBG((u16*)gImage_SD,90, 2, 90, 13, 1);
-	switch(error_num)
-	{
+	switch(error_num) {
 		case 0x0:
 			sprintf(msg,"%s",gl_error_0);
 			break;
@@ -1620,7 +1627,7 @@ int main(void) {
 
 	gl_currentpage = 0x8002 ;//kernel mode
 
-	SetMode (MODE_3 | BG2_ENABLE );
+	// SetMode (MODE_3 | BG2_ENABLE);
 	
 	SD_Disable();	
 	Set_RTC_status(1);
@@ -1631,24 +1638,27 @@ int main(void) {
 
 	if((Current_FW_ver < Built_in_ver) || (Current_FW_ver == 99))//99 is test ver
 	{
+		if (!enabledUI) {
+			SetMode (MODE_3 | BG2_ENABLE);
+			enabledUI = true;
+		}
 		Check_FW_update(Current_FW_ver,Built_in_ver);
 	}
 	
-	DrawPic((u16*)gImage_splash, 0, 0, 240, 160, 0, 0, 1);	
 	CheckLanguage();	
 	CheckSwitch();
 
 	res = f_mount(&EZcardFs, "", 1);
-	if( res != FR_OK)
-	{
+	if(res != FR_OK) {
+		enabledUI = true;
+		SetMode (MODE_3 | BG2_ENABLE);
+		DrawPic((u16*)gImage_splash, 0, 0, 240, 160, 0, 0, 1);
 		DrawHZText12(gl_init_error,0,2,20, gl_color_text,1);
 		DrawHZText12(gl_power_off,0,2,33, gl_color_text,1);
 		while(1);
-	}
-	else
-	{
-		DrawHZText12(gl_init_ok,0,2,20, gl_color_text,1);
-		DrawHZText12(gl_Loading,0,2,33, gl_color_text,1);
+	} else {
+		/*DrawHZText12(gl_init_ok,0,2,20, gl_color_text,1);
+		DrawHZText12(gl_Loading,0,2,33, gl_color_text,1);*/
 	}
 	VBlankIntrWait();	
 
@@ -1666,8 +1676,7 @@ int main(void) {
 	Read_NOR_info();	
 	gl_norOffset = 0x000000;
 	game_total_NOR = GetFileListFromNor();//initialize to prevent direct writes to NOR without page turning
-	if(game_total_NOR==0)
-	{
+	if(game_total_NOR==0) {
 		memset(pNorFS,00,sizeof(FM_NOR_FS)*MAX_NOR);
 		Save_NOR_info(pNorFS,sizeof(FM_NOR_FS)*MAX_NOR);
 	}
@@ -1675,19 +1684,17 @@ int main(void) {
 	scanKeys();
 	const int isLPressed = (keysDownRepeat() & KEY_L) || (keysDown() & KEY_L);
 	const int isAPressed = (keysDownRepeat() & KEY_A) || (keysDown() & KEY_A);
-	if(!isLPressed & gl_quickboot_sel == 0x1)
-	{
-		if (isAPressed)
-		{
+	const int isRPressed = (keysDownRepeat() & KEY_R) || (keysDown() & KEY_R);
+	if (isRPressed)dumpFatTable = true; // For debug purposes.
+	if(!isLPressed & gl_quickboot_sel == 0x1) {
+		if (isAPressed) {
 			// L+A pressed -> load last played game from SD card if user has
 			// previously started at least one game
-			if (get_count())
-			{
+			if (get_count()) {
 				u32 save_num = 0;
 
 				res = f_open(&gfile, p_recently_play[save_num], FA_OPEN_EXISTING);
-				if(res == FR_OK)
-				{
+				if(res == FR_OK) {
 					f_close(&gfile);
 
 					page_num=SD_list;
@@ -1695,29 +1702,28 @@ int main(void) {
 					u8 *p=strrchr(p_recently_play[save_num], '/');
 					memset(currentpath, 0, MAX_path_len);
 					strncpy(currentpath, p_recently_play[save_num], p-p_recently_play[save_num]);
-					if(currentpath[0]==0)
-					{
-						currentpath[0] = '/';
-					}
+					if(currentpath[0] == 0)currentpath[0] = '/';
 					memset(current_filename, 0, 200);
 					strncpy(current_filename, p+1, 100); // remove directory path
 					pfilename = current_filename;
-					is_EMU=Check_file_type(pfilename);
-					if (!is_EMU)
-					{
+					is_EMU = Check_file_type(pfilename);
+					if (!is_EMU) {
 						old_Save_num = Check_mde_file(pfilename);
 						Save_num = old_Save_num;
 					}
 					goto start_game;
 				}
 			}
-		}
-		else if(game_total_NOR)
-		{
+		} else if(game_total_NOR) {
 			// L pressed -> load last game in NOR
 			page_num = NOR_list;
 			file_select = game_total_NOR - 1;
 			goto start_game;
+		}
+	} else {
+		if (!enabledUI) {
+			SetMode (MODE_3 | BG2_ENABLE);
+			enabledUI = true;
 		}
 	}
 refind_file:

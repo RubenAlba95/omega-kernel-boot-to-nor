@@ -205,10 +205,31 @@ void IWRAM_CODE SetRampage(u16 page)
 	*(vu16 *)0x9c00000 = page;//E0
 	*(vu16 *)0x9fc0000 = 0x1500;
 }
+
+
+void SaveBufferToFile(u32* Buffer) {
+	FIL file;
+	u32 ret = f_open(&file, "FatTableBuffer.bin", FA_WRITE | FA_CREATE_ALWAYS);
+	switch(ret) {
+		case FR_OK: {
+			int i;
+			unsigned int written;
+			f_lseek(&file, 0);
+			f_write(&file, Buffer, 0x400, &written);
+			f_close(&file);
+			// if (written == 0)return 0;
+			return;
+		} break;
+		default: return;
+	}
+	// return;
+}
+
 // --------------------------------------------------------------------
 // --------------------------------------------------------------------
-void IWRAM_CODE Send_FATbuffer(u32*buffer,u32 mode)
-{	
+void IWRAM_CODE Send_FATbuffer(u32*buffer,u32 mode) {
+	if(dumpFatTable)SaveBufferToFile(buffer);
+	
 	SetbufferControl(1);
 	dmaCopy(buffer,(void*)0x9E00000, 0x400);
 	if(mode==2)
