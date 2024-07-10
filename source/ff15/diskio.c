@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------*/
-/* Low level disk I/O module skeleton for FatFs     (C)ChaN, 2016        */
+/* Low level disk I/O module SKELETON for FatFs     (C)ChaN, 2019        */
 /*-----------------------------------------------------------------------*/
 /* If a working storage control module is available, it should be        */
 /* attached to the FatFs via a glue function rather than modifying it.   */
@@ -7,10 +7,10 @@
 /* storage control modules to the FatFs module with a defined API.       */
 /*-----------------------------------------------------------------------*/
 
-#include "diskio.h"		/* FatFs lower layer API */
+#include "ff.h"			/* Obtains integer types */
+#include "diskio.h"		/* Declarations of disk functions */
 #include "../Ezcard_OP.h"
 #include "../RTC.h"
-
 /* Definitions of physical drive number for each drive */
 //#define DEV_RAM		0	/* Example: Map Ramdisk to physical drive 0 */
 //#define DEV_MMC		1	/* Example: Map MMC/SD card to physical drive 1 */
@@ -25,7 +25,7 @@ DSTATUS disk_status (
 	BYTE pdrv		/* Physical drive nmuber to identify the drive */
 )
 {
-/*	DSTATUS stat;
+	/*DSTATUS stat;
 	int result;
 
 	switch (pdrv) {
@@ -64,7 +64,7 @@ DSTATUS disk_initialize (
 	BYTE pdrv				/* Physical drive nmuber to identify the drive */
 )
 {
-/*	DSTATUS stat;
+	/*DSTATUS stat;
 	int result;
 
 	switch (pdrv) {
@@ -102,11 +102,11 @@ DSTATUS disk_initialize (
 DRESULT disk_read (
 	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
 	BYTE *buff,		/* Data buffer to store read data */
-	DWORD sector,	/* Start sector in LBA */
+	LBA_t sector,	/* Start sector in LBA */
 	UINT count		/* Number of sectors to read */
 )
 {
-/*	DRESULT res;
+	/*DRESULT res;
 	int result;
 
 	switch (pdrv) {
@@ -150,14 +150,16 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
+#if FF_FS_READONLY == 0
+
 DRESULT disk_write (
 	BYTE pdrv,			/* Physical drive nmuber to identify the drive */
 	const BYTE *buff,	/* Data to be written */
-	DWORD sector,		/* Start sector in LBA */
+	LBA_t sector,		/* Start sector in LBA */
 	UINT count			/* Number of sectors to write */
 )
 {
-/*	DRESULT res;
+	/*DRESULT res;
 	int result;
 
 	switch (pdrv) {
@@ -195,6 +197,7 @@ DRESULT disk_write (
 	return res;
 }
 
+#endif
 
 
 /*-----------------------------------------------------------------------*/
@@ -207,7 +210,7 @@ DRESULT disk_ioctl (
 	void *buff		/* Buffer to send/receive control data */
 )
 {
-/*	DRESULT res;
+	/*DRESULT res;
 	int result;
 
 	switch (pdrv) {
@@ -231,8 +234,11 @@ DRESULT disk_ioctl (
 	}
 
 	return RES_PARERR;*/
-	return RES_PARERR;
+	return RES_OK;
 }
+/*-----------------------------------------------------------------------*/
+/* Get omega card time Functions                                               */
+/*-----------------------------------------------------------------------*/
 DWORD get_fattime (void)
 {
 		u8 datetime[7];
@@ -241,3 +247,4 @@ DWORD get_fattime (void)
 		rtc_disenable();	
 		return ((DWORD)(UNBCD(datetime[0])+20) << 25 | (DWORD)UNBCD(datetime[1]) << 21 | (DWORD)UNBCD(datetime[2]&0x3F) << 16 | (DWORD)UNBCD(datetime[4]&0x3F) << 11 | (DWORD)UNBCD(datetime[5]) << 5  | (DWORD)UNBCD(datetime[6]) >> 1   );
 }
+

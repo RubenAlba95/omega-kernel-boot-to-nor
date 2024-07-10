@@ -136,7 +136,8 @@ u32 IWRAM_CODE Write_SD_sectors(u32 address,u16 count, u8* SDbuffer)
 		*(vu16 *)0x9640000 = 0x8000+blocks;
 		*(vu16 *)0x9fc0000 = 0x1500;
 				
-		res = Wait_SD_Response();						
+		res = Wait_SD_Response();
+		if(res==1)return 1;
 	}
 	delay(3000);
 	SD_Disable();
@@ -207,7 +208,7 @@ void IWRAM_CODE SetRampage(u16 page)
 }
 
 
-void SaveBufferToFile(u32* Buffer) {
+/*void SaveBufferToFile(u32* Buffer) {
 	FIL file;
 	u32 ret = f_open(&file, "FatTableBuffer.bin", FA_WRITE | FA_CREATE_ALWAYS);
 	switch(ret) {
@@ -222,14 +223,12 @@ void SaveBufferToFile(u32* Buffer) {
 		} break;
 		default: return;
 	}
-	// return;
-}
+}*/
 
 // --------------------------------------------------------------------
 // --------------------------------------------------------------------
 void IWRAM_CODE Send_FATbuffer(u32*buffer,u32 mode) {
-	if(dumpFatTable)SaveBufferToFile(buffer);
-	
+	// if(dumpFatTable)SaveBufferToFile(buffer);
 	SetbufferControl(1);
 	dmaCopy(buffer,(void*)0x9E00000, 0x400);
 	if(mode==2)
@@ -285,20 +284,18 @@ void IWRAM_CODE SetRompageWithHardReset(u16 page,u32 bootmode)
 	}
 }
 // --------------------------------------------------------------------
-void IWRAM_CODE ReadSram(u32 address, u8* data , u32 size )
-{
-	register int i ;
-	for(i=0;i<size;i++)
-	{
+void IWRAM_CODE ReadSram(u32 address, u8* data , u32 size) {
+	register unsigned int i;
+	for(i=0;i<size;i++) {
 		data[i]=*(u8*)(address+i);
 	}
 }
 // --------------------------------------------------------------------
-void IWRAM_CODE WriteSram(u32 address, u8* data , u32 size )
-{
-	register int i ;
-	for(i=0;i<size;i++)
+void IWRAM_CODE WriteSram(u32 address, u8* data , u32 size) {
+	register unsigned int i;
+	for(i=0;i<size;i++) {
 		*(vu8*)(address+i)=data[i];
+	}
 }
 // --------------------------------------------------------------------
 void IWRAM_CODE Bank_Switching(u8 bank)
@@ -309,7 +306,7 @@ void IWRAM_CODE Bank_Switching(u8 bank)
 	*((vu8 *)(SAVE_sram_base+0x0000)) = bank ;	
 }
 // --------------------------------------------------------------------
-void IWRAM_CODE Save_info(u32 info_offset, u8 * info_buffer,u32 buffersize)
+void IWRAM_CODE Save_info(u32 info_offset, u16 * info_buffer,u32 buffersize)
 {
 	u32 offset;
 	vu16* buf = (vu16*)info_buffer ;
@@ -373,7 +370,7 @@ void IWRAM_CODE Save_info(u32 info_offset, u8 * info_buffer,u32 buffersize)
 	*((vu16 *)(FlashBase_S71)) = 0xF0;	
 }
 // --------------------------------------------------------------------
-void IWRAM_CODE Save_NOR_info(u8 * NOR_info_buffer,u32 buffersize)
+void IWRAM_CODE Save_NOR_info(u16 * NOR_info_buffer,u32 buffersize)
 {
 	Save_info(NOR_info_offset, NOR_info_buffer,buffersize);
 }

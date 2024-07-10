@@ -324,8 +324,8 @@ u32 Setting_window(void)
 			
 		currstate=Set_OK;		
 		switch(currstate) {
-			case 0: //initial state
-				//get date and time 
+			case 0: { //initial state
+				//get date and time
 				u16 read5 = Read_SET_info(5); 
 				u16 read6 = Read_SET_info(6); 
 				u16 read7 = Read_SET_info(7); 
@@ -552,7 +552,7 @@ u32 Setting_window(void)
 					re_show = 1;
 				}			
 				
-				break	;
+			} break;
 			case 1: //edit state	
 				//if(Set_OK_line==0) {														
 					if(re_show)
