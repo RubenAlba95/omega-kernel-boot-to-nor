@@ -97,6 +97,10 @@ u16 gl_color_cheat_count  = RGB(00,31,00);
 u16 gl_color_cheat_black  = RGB(00,00,00);
 u16 gl_color_NORFULL      = RGB(31,00,00);
 u16 gl_color_btn_clean    = RGB(00,00,31);
+
+// bool dumpFatTable = false;
+bool enabledUI = false;
+
 //******************************************************************************
 void delay(u32 R0)
 {
@@ -789,10 +793,9 @@ void Show_game_name(u32 total,u32 Select)
 	}		
 }
 //---------------------------------------------------------------------------------
-u32  get_count(void)
-{
+u32  get_count(void) {
 	u32 res;
-	u32 count=0;
+	u32 count = 0;
 	u8 buf[512];	
 	res = f_open(&gfile,"/SAVER/Recently play.txt", FA_READ);	
 	if(res == FR_OK)//have a play file
@@ -1553,13 +1556,16 @@ u32 Check_file_type(TCHAR *pfilename)
 	}	
 }
 //---------------------------------------------------------------------------------
-void Show_error_num(u8 error_num)
-{
+void Show_error_num(u8 error_num) {
+	
+	if (!enabledUI) {
+		enabledUI = true;
+		SetMode (MODE_3 | BG2_ENABLE);
+	}
 	char msg[50];
 
 	ClearWithBG((u16*)gImage_SD,90, 2, 90, 13, 1);
-	switch(error_num)
-	{
+	switch(error_num) {
 		case 0x0:
 			sprintf(msg,"%s",gl_error_0);
 			break;
@@ -1589,6 +1595,14 @@ void Show_error_num(u8 error_num)
 	DrawHZText12(msg,0,90,2, RGB(31,00,00),1);
 	wait_btn();
 }
+
+static void EnableUI() {
+	if (!enabledUI) {
+		SetMode (MODE_3 | BG2_ENABLE);
+		enabledUI = true;
+	}
+}
+
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
@@ -1610,17 +1624,17 @@ int main(void) {
 	PAGE_NUM page_num=SD_list;
 	u32 page_mode;
 	u32 shift;
-	u32 short_filename=0;
-	u8 Save_num=0; //save type: auto
-	u8 old_Save_num=0;
-	u32 MENU_line=0;
-	u32 is_EMU=0;
+	u32 short_filename = 0;
+	u8 Save_num = 0; //save type: auto
+	u8 old_Save_num = 0;
+	u32 MENU_line = 0;
+	u32 is_EMU = 0;
 	
 	u8 error_num;
 
 	gl_currentpage = 0x8002 ;//kernel mode
 
-	SetMode (MODE_3 | BG2_ENABLE );
+	// SetMode (MODE_3 | BG2_ENABLE);
 	
 	SD_Disable();	
 	Set_RTC_status(1);
@@ -1631,25 +1645,24 @@ int main(void) {
 
 	if((Current_FW_ver < Built_in_ver) || (Current_FW_ver == 99))//99 is test ver
 	{
+		EnableUI();
 		Check_FW_update(Current_FW_ver,Built_in_ver);
 	}
 	
-	DrawPic((u16*)gImage_splash, 0, 0, 240, 160, 0, 0, 1);	
 	CheckLanguage();	
 	CheckSwitch();
 
 	res = f_mount(&EZcardFs, "", 1);
-	if( res != FR_OK)
-	{
+	if(res != FR_OK) {
+		EnableUI();
+		DrawPic((u16*)gImage_splash, 0, 0, 240, 160, 0, 0, 1);
 		DrawHZText12(gl_init_error,0,2,20, gl_color_text,1);
 		DrawHZText12(gl_power_off,0,2,33, gl_color_text,1);
 		while(1);
-	}
-	else
-	{
+	}/* else {
 		DrawHZText12(gl_init_ok,0,2,20, gl_color_text,1);
 		DrawHZText12(gl_Loading,0,2,33, gl_color_text,1);
-	}
+	}*/
 	VBlankIntrWait();	
 
 	f_chdir("/");
@@ -1666,64 +1679,74 @@ int main(void) {
 	Read_NOR_info();	
 	gl_norOffset = 0x000000;
 	game_total_NOR = GetFileListFromNor();//initialize to prevent direct writes to NOR without page turning
-	if(game_total_NOR==0)
-	{
+	if(game_total_NOR==0) {
 		memset(pNorFS,00,sizeof(FM_NOR_FS)*MAX_NOR);
 		Save_NOR_info(pNorFS,sizeof(FM_NOR_FS)*MAX_NOR);
 	}
 	VBlankIntrWait();
 	scanKeys();
-	const int isLPressed = (keysDownRepeat() & KEY_L) || (keysDown() & KEY_L);
-	const int isAPressed = (keysDownRepeat() & KEY_A) || (keysDown() & KEY_A);
-	if(!isLPressed & gl_quickboot_sel == 0x1)
-	{
-		if (isAPressed)
-		{
-			// L+A pressed -> load last played game from SD card if user has
-			// previously started at least one game
-			if (get_count())
-			{
-				u32 save_num = 0;
-
-				res = f_open(&gfile, p_recently_play[save_num], FA_OPEN_EXISTING);
-				if(res == FR_OK)
-				{
-					f_close(&gfile);
-
-					page_num=SD_list;
-
-					u8 *p=strrchr(p_recently_play[save_num], '/');
-					memset(currentpath, 0, MAX_path_len);
-					strncpy(currentpath, p_recently_play[save_num], p-p_recently_play[save_num]);
-					if(currentpath[0]==0)
-					{
-						currentpath[0] = '/';
+	u32 bootKeys = keysDown();
+	
+	switch (bootKeys) {
+		case KEY_L: EnableUI(); break;
+		/*case KEY_B: {
+			dumpFatTable = true; // For debug purposes.
+			EnableUI();
+		} break;*/
+		default: {
+			if (gl_quickboot_sel == 0x1) {
+				if (bootKeys & KEY_A) {
+					// A pressed -> load last played game from SD card if user has
+					// previously started at least one game
+					if (get_count() > 0) {
+						u32 fileEntry = 0;
+						res = f_open(&gfile, p_recently_play[fileEntry], FA_OPEN_EXISTING);
+						if(res == FR_OK) {
+							f_close(&gfile);
+							page_num = SD_list;
+							u8 *p = strrchr(p_recently_play[fileEntry], '/');
+							memset(currentpath, 0, MAX_path_len);
+							strncpy(currentpath, p_recently_play[fileEntry], (p - p_recently_play[fileEntry]));
+							if(currentpath[0] == 0)currentpath[0] = '/';
+							memset(current_filename, 0, 200);
+							strncpy(current_filename, (p + 1), 100); // remove directory path
+							pfilename = current_filename;
+							is_EMU = Check_file_type(pfilename);
+							if (!is_EMU) {
+								old_Save_num = Check_mde_file(pfilename);
+								Save_num = old_Save_num;
+							}
+							goto start_game;
+						} else {
+							EnableUI();
+						}
+					} else {
+						EnableUI();
 					}
-					memset(current_filename, 0, 200);
-					strncpy(current_filename, p+1, 100); // remove directory path
-					pfilename = current_filename;
-					is_EMU=Check_file_type(pfilename);
-					if (!is_EMU)
-					{
-						old_Save_num = Check_mde_file(pfilename);
-						Save_num = old_Save_num;
+				} else if (game_total_NOR > 0) {
+					if ((game_total_NOR > 1) && ((bootKeys & KEY_UP) || (bootKeys & KEY_DOWN))) {
+						// Load Last game in list if D-Pad Up/Down buttons held.
+						page_num = NOR_list;
+						file_select = (game_total_NOR - 1);
+					} else {
+						// Changed to load first in list by default.
+						page_num = NOR_list;
+						file_select = 0;
 					}
 					goto start_game;
+				} else {
+					EnableUI();
 				}
+			} else {
+				EnableUI();
 			}
-		}
-		else if(game_total_NOR)
-		{
-			// L pressed -> load last game in NOR
-			page_num = NOR_list;
-			file_select = game_total_NOR - 1;
-			goto start_game;
-		}
+		} break;
 	}
+
 refind_file:
 	
 
-	if(page_num== SD_list)
+	if(page_num == SD_list)
 	{
 		folder_total = 0;
 		game_total_SD = 0; 
@@ -2143,7 +2166,7 @@ re_showfile:
 		u8 Save_num=0;//save tpye: auto
 		u8 old_Save_num=0;		
 		u32 havecht;	
-		u32 MENU_line=0   ;
+		u32 MENU_line=0;
 		u32 re_menu=1;
 		u32 MENU_max;		
 		u32 is_EMU=Check_file_type(pfilename);

@@ -3,3 +3,4 @@ ezkernel.bin
 ezkernel.elf
 ezkernel.gba
 copy.bat
+*.cmd

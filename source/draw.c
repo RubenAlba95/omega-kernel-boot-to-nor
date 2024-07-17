@@ -15,8 +15,8 @@
 int current_y = 1;
 extern u8 pReadCache [MAX_pReadCache_size]EWRAM_BSS;
 //******************************************************************************
-void IWRAM_CODE Clear(u16 x, u16 y, u16 w, u16 h, u16 c, u8 isDrawDirect)
-{
+void IWRAM_CODE Clear(u16 x, u16 y, u16 w, u16 h, u16 c, u8 isDrawDirect) {
+	if (!enabledUI)return;
 	u16 *p;
 	u16 yi,ww,hh;
     
@@ -36,8 +36,8 @@ void IWRAM_CODE Clear(u16 x, u16 y, u16 w, u16 h, u16 c, u8 isDrawDirect)
 		dmaCopy(pReadCache,p+yi*240+x,ww*2);         
 }
 //******************************************************************************
-void IWRAM_CODE ClearWithBG(u16* pbg,u16 x, u16 y, u16 w, u16 h, u8 isDrawDirect)
-{
+void IWRAM_CODE ClearWithBG(u16* pbg,u16 x, u16 y, u16 w, u16 h, u8 isDrawDirect) {
+	if (!enabledUI)return;
 	u16 *p;
 	u16 yi,ww,hh;
     
@@ -53,8 +53,8 @@ void IWRAM_CODE ClearWithBG(u16* pbg,u16 x, u16 y, u16 w, u16 h, u8 isDrawDirect
 		dmaCopy(pbg+yi*240+x,p+yi*240+x,ww*2);       
 }
 //******************************************************************************
-void IWRAM_CODE DrawPic(u16 *GFX, u16 x, u16 y, u16 w, u16 h, u8 isTrans, u16 tcolor, u8 isDrawDirect)
-{
+void IWRAM_CODE DrawPic(u16 *GFX, u16 x, u16 y, u16 w, u16 h, u8 isTrans, u16 tcolor, u8 isDrawDirect) {
+	if (!enabledUI)return;
 	u16 *p,c;
 	u16 xi,yi,ww,hh;
 
@@ -83,10 +83,10 @@ void IWRAM_CODE DrawPic(u16 *GFX, u16 x, u16 y, u16 w, u16 h, u8 isTrans, u16 tc
 	}
 }
 //---------------------------------------------------------------------------------
-void DrawHZText12(char *str, u16 len, u16 x, u16 y, u16 c, u8 isDrawDirect)
-{
-  u32 i,l,hi=0;
-  u32 location;
+void DrawHZText12(char *str, u16 len, u16 x, u16 y, u16 c, u8 isDrawDirect) {
+	if (!enabledUI)return;
+	u32 i,l,hi=0;
+	u32 location;
 	u8 cc,c1,c2;
 	u16 *v;
 	u16 *p1 = Vcache;
@@ -194,9 +194,9 @@ void DrawHZText12(char *str, u16 len, u16 x, u16 y, u16 c, u8 isDrawDirect)
 	}
 }
 //---------------------------------------------------------------------------------
-void DEBUG_printf(const char *format, ...)
-{
-    char* str;
+void DEBUG_printf(const char *format, ...) {
+    if (!enabledUI)return;
+	char* str;
     va_list va;
 
     va_start(va, format);
@@ -221,8 +221,8 @@ void DEBUG_printf(const char *format, ...)
     }
 }
 //---------------------------------------------------------------------------------
-void ShowbootProgress(char *str)
-{
+void ShowbootProgress(char *str) {
+	if (!enabledUI)return;
 	u8 str_len = strlen(str); 	
 	Clear(60,160-15,120,15,gl_color_cheat_black,1);	
 	DrawHZText12(str,0,(240-str_len*6)/2,160-15,gl_color_text,1);	

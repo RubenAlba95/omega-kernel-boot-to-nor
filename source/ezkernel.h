@@ -96,6 +96,8 @@ extern u16 gl_color_cheat_count;
 extern u16 gl_color_cheat_black;
 extern u16 gl_color_NORFULL;
 extern u16 gl_color_btn_clean;
+extern bool dumpFatTable;
+extern bool enabledUI;
 
 u32 Setting_window(void);
 
